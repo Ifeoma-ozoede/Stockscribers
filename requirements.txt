@@ -1,0 +1,2 @@
+# Stockscribes uses only Python's built-in libraries — there is nothing to install.
+# This file exists because hosting platforms look for it.

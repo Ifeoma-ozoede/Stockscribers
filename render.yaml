@@ -1,0 +1,16 @@
+# Deployment settings for Render (render.com).
+# With this file in the repository, Render sets the service up by itself —
+# you don't have to fill in build or start commands by hand.
+
+services:
+  - type: web
+    name: stockscribes
+    runtime: python
+    plan: free            # change to "starter" when it needs to stay awake and keep data
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: DEMO_MODE
+        value: "1"        # shows the "sample data, resets regularly" notice on the sign-in page

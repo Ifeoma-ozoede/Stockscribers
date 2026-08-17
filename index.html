@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stockscribes</title>
+<style>
+  /* ===== Day theme (Clean Teal) — 6am to 6pm ===== */
+  :root {
+    --accent:#0f766e; --accent-dark:#115e59; --accent-soft:#f0fdfa; --on-accent:#fff;
+    --ink:#1f2937; --ink-strong:#111827; --muted:#6b7280; --line:#e5e7eb; --line-soft:#f1f5f9;
+    --bg:#f8fafc; --card:#fff; --input-bg:#fff;
+    --amber:#b45309; --amber-bg:#fef3c7;
+    --red:#b91c1c; --red-bg:#fee2e2;
+    --ok:#15803d; --ok-bg:#dcfce7;
+    --shadow:0 10px 30px rgba(15,118,110,.08);
+    --login-bg:linear-gradient(160deg,#f0fdfa,#fff 60%);
+  }
+  /* ===== Night theme (Midnight) — 6pm to 6am ===== */
+  html[data-theme="dark"] {
+    --accent:#22d3ee; --accent-dark:#06b6d4; --accent-soft:rgba(34,211,238,.12); --on-accent:#0f172a;
+    --ink:#e2e8f0; --ink-strong:#f8fafc; --muted:#94a3b8; --line:#334155; --line-soft:#273549;
+    --bg:#0f172a; --card:#1e293b; --input-bg:#1e293b;
+    --amber:#fbbf24; --amber-bg:rgba(251,191,36,.15);
+    --red:#f87171; --red-bg:rgba(248,113,113,.15);
+    --ok:#4ade80; --ok-bg:rgba(74,222,128,.15);
+    --shadow:0 10px 30px rgba(0,0,0,.4);
+    --login-bg:linear-gradient(160deg,#0f172a,#1e293b 60%);
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);
+    transition:background .4s ease,color .4s ease}
+  .hidden{display:none!important}
+
+  /* login */
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+    background:var(--login-bg);transition:background .4s ease}
+  .login-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:38px 34px;
+    max-width:410px;width:100%;box-shadow:var(--shadow);text-align:center}
+  .logo{font-size:29px;font-weight:800;color:var(--accent);letter-spacing:-.5px}
+  .logo span{color:var(--ink-strong)}
+  .tagline{color:var(--muted);font-size:14px;margin:6px 0 26px}
+  input,select,textarea{font-family:inherit}
+  .login-card input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;
+    font-size:15px;margin-bottom:12px;background:var(--input-bg);color:var(--ink)}
+  .btn{border:none;border-radius:10px;padding:12px 18px;font-size:15px;font-weight:600;cursor:pointer;
+    transition:background .15s}
+  .btn-primary{background:var(--accent);color:var(--on-accent);width:100%}
+  .btn-primary:hover{background:var(--accent-dark)}
+  .btn-ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+  .btn-ghost:hover{background:var(--accent-soft)}
+  .err{background:var(--red-bg);color:var(--red);border-radius:9px;padding:10px 12px;font-size:13.5px;
+    margin-bottom:12px;font-weight:600;text-align:left}
+  .demo-note{font-size:12px;color:var(--muted);margin-top:18px;line-height:1.7}
+  .demo-note code{background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:5px;font-size:11.5px}
+
+  /* shell */
+  header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;
+    transition:background .4s ease,border-color .4s ease}
+  .bar{width:100%;padding:13px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .bar .logo{font-size:20px}
+  nav{display:flex;gap:4px;flex:1}
+  nav button{background:none;border:none;padding:9px 16px;border-radius:8px;font-size:15px;color:var(--muted);
+    cursor:pointer;font-weight:600}
+  nav button.active{background:var(--accent-soft);color:var(--accent)}
+  .who{font-size:13px;color:var(--muted)}
+  .who b{color:var(--ink-strong)}
+  .linkbtn{font-size:13px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600}
+  .themebtn{background:none;border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13px;
+    cursor:pointer;color:var(--muted);font-weight:600;white-space:nowrap}
+  .themebtn:hover{border-color:var(--accent);color:var(--accent)}
+  main{width:100%;padding:26px 28px 90px}
+  h2.page{font-size:22px;margin-bottom:4px;color:var(--ink-strong)}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:20px}
+
+  /* search */
+  .searchwrap{display:flex;gap:10px;margin-bottom:14px}
+  .searchwrap input{flex:1;padding:15px 18px;font-size:17px;border:2px solid var(--accent);border-radius:12px;
+    outline:none;background:var(--input-bg);color:var(--ink)}
+  .chips{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap}
+  .chip{padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:13.5px;
+    cursor:pointer;color:var(--muted);font-weight:600}
+  .chip.active{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px;
+    transition:background .4s ease,border-color .4s ease}
+  .card h3{font-size:17px;color:var(--ink-strong)}
+  .gname{color:var(--muted);font-size:13.5px;margin:2px 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:14.5px}
+  th{text-align:left;color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.4px;
+    padding:6px 10px;border-bottom:1px solid var(--line)}
+  td{padding:10px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .price{font-weight:700;color:var(--ink-strong)}
+  .best{color:var(--ok)}
+  .badge{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .b-short{background:var(--amber-bg);color:var(--amber)}
+  .b-out{background:var(--red-bg);color:var(--red)}
+  .b-in{background:var(--ok-bg);color:var(--ok)}
+  .b-new{background:var(--accent-soft);color:var(--accent)}
+  .add{background:var(--accent);color:var(--on-accent);border:none;border-radius:8px;padding:7px 14px;
+    font-weight:600;cursor:pointer;font-size:13.5px}
+  .add:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
+  .exp{font-size:13px;color:var(--muted)}
+
+  .fab{position:fixed;right:24px;bottom:24px;background:var(--accent);color:var(--on-accent);border:none;
+    border-radius:999px;padding:15px 22px;font-size:15px;font-weight:700;cursor:pointer;
+    box-shadow:0 6px 20px rgba(0,0,0,.25)}
+  .qty{width:66px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:14px;
+    background:var(--input-bg);color:var(--ink)}
+  .total-row{display:flex;justify-content:space-between;font-size:17px;font-weight:700;padding-top:14px;
+    color:var(--ink-strong)}
+  .rm{background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;font-weight:600}
+  .empty{text-align:center;color:var(--muted);padding:60px 0;font-size:15px}
+  .order-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap}
+  .oid{font-weight:700;color:var(--ink-strong)}
+  .odate{color:var(--muted);font-size:13px}
+
+  .field{display:block;font-size:13px;color:var(--muted);font-weight:600;margin-bottom:5px}
+  .inp{padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:14.5px;
+    background:var(--input-bg);color:var(--ink)}
+  .sup-input{width:112px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:14px;
+    background:var(--input-bg);color:var(--ink)}
+  .toggle{cursor:pointer;user-select:none}
+  .savebar{background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent);border-radius:10px;
+    padding:12px 16px;font-size:14px;margin-bottom:16px;font-weight:600}
+  .confirm{background:var(--ok);color:var(--on-accent);border:none;border-radius:8px;padding:8px 16px;
+    font-weight:600;cursor:pointer;font-size:13.5px}
+  .confirm:disabled{background:var(--line);color:var(--muted);cursor:default}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  textarea.inp{width:100%;min-height:130px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;background:var(--ink-strong);
+    color:var(--bg);padding:12px 22px;border-radius:10px;font-size:14.5px;opacity:0;transition:opacity .25s;
+    pointer-events:none;z-index:60;font-weight:600;max-width:90vw;text-align:center}
+  .toast.show{opacity:1}
+  @media(max-width:640px){ main{padding:20px 16px 90px} td,th{padding:8px 6px} }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="login">
+  <div class="login-card">
+    <div class="logo">Stock<span>scribes</span></div>
+    <div class="tagline">Pharmacy stock ordering — no phone calls</div>
+    <div id="loginerr" class="err hidden"></div>
+    <input id="email" type="email" placeholder="Email address" autocomplete="username">
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+    <button class="btn btn-primary" onclick="doLogin()">Sign in</button>
+    <div id="demobox" class="demo-note hidden" style="background:var(--amber-bg);color:var(--amber);
+      border-radius:9px;padding:10px 12px;margin:0 0 14px;text-align:left;font-weight:600">
+      Live demo — sample data only, no real pharmacy information. Anything you change here resets
+      when the site restarts, so explore freely.
+    </div>
+    <div class="demo-note">
+      Sign in with:<br>
+      Pharmacy — <code>staff@stockscribes.ng</code> / <code>stockscribes123</code><br>
+      Supplier — <code>alpha@supplier.ng</code> / <code>alpha123</code><br>
+      <span id="themenote"></span>
+      <button class="themebtn" style="margin-top:9px" onclick="cycleTheme()">Preview other mode</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app" class="hidden">
+  <header>
+    <div class="bar">
+      <div class="logo">Stock<span>scribes</span></div>
+      <nav id="nav"></nav>
+      <button class="themebtn" id="themebtn" onclick="cycleTheme()"></button>
+      <span class="who" id="who"></span>
+      <button class="linkbtn" onclick="doLogout()">Log out</button>
+    </div>
+  </header>
+  <main id="main"></main>
+  <button id="fab" class="fab hidden" onclick="go('cart')">Order basket (0)</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ day / night theme ============ */
+let themeMode = "auto";
+const nightNow = () => { const h = new Date().getHours(); return h >= 18 || h < 6; };
+function applyTheme() {
+  const dark = themeMode === "auto" ? nightNow() : themeMode === "dark";
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  const btn = document.getElementById("themebtn");
+  if (btn) btn.textContent = (dark ? "🌙 Night" : "☀️ Day") + (themeMode === "auto" ? " (auto)" : " (manual)");
+  const note = document.getElementById("themenote");
+  if (note) note.textContent = themeMode === "auto"
+    ? `Currently ${dark ? "night" : "day"} — switches automatically at 6am / 6pm.`
+    : `Manual ${dark ? "night" : "day"} mode.`;
+}
+function cycleTheme() {
+  themeMode = themeMode === "auto" ? (nightNow() ? "light" : "dark") : themeMode === "dark" ? "light" : "auto";
+  applyTheme();
+  toast(themeMode === "auto" ? "Back to automatic day/night" : "Manual preview — click again to cycle");
+}
+applyTheme();
+setInterval(() => { if (themeMode === "auto") applyTheme(); }, 60000);
+
+/* show the demo notice only when the site is running as a public demo */
+fetch("/api/site-info").then(r => r.json()).then(info => {
+  if (info.demo) document.getElementById("demobox").classList.remove("hidden");
+}).catch(() => {});
+
+/* ============ state ============ */
+let token = null, me = null, view = "search", filter = "All", query = "";
+let cart = [];                 // [{offer_id, qty, name, price, supplier, expiry, short_dated}]
+let catalog = [], orders = [], myProducts = [];
+let payment = "advance", paymentMethods = { advance: "Pay in advance" };
+
+const el = (id) => document.getElementById(id);
+const N = (v) => "₦" + Number(v).toLocaleString("en-NG");
+const fmtExp = (e) => new Date(e).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+const fmtDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+function toast(msg) {
+  const t = el("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2600);
+}
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
+
+async function api(action, body) {
+  const res = await fetch("/api/" + action, {
+    method: "POST",
+    headers: Object.assign({ "Content-Type": "application/json" }, token ? { Authorization: "Bearer " + token } : {}),
+    body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again.");
+  return data;
+}
+
+/* ============ auth ============ */
+async function doLogin() {
+  const email = el("email").value.trim(), password = el("password").value;
+  const errBox = el("loginerr");
+  try {
+    const r = await api("login", { email, password });
+    token = r.token; me = r.user;
+    errBox.classList.add("hidden");
+    el("login").classList.add("hidden"); el("app").classList.remove("hidden");
+    try { const pm = await (await fetch("/api/payment-methods")).json();
+          paymentMethods = pm.methods; payment = pm.default; } catch (e) {}
+    view = me.role === "pharmacy" ? "search" : "myproducts";
+    await refresh();
+  } catch (e) {
+    errBox.textContent = e.message; errBox.classList.remove("hidden");
+  }
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !el("login").classList.contains("hidden")) doLogin();
+});
+async function doLogout() {
+  try { await api("logout"); } catch (e) {}
+  token = null; me = null; cart = [];
+  el("app").classList.add("hidden"); el("login").classList.remove("hidden");
+  el("password").value = ""; applyTheme();
+}
+
+/* ============ data loading ============ */
+async function refresh() {
+  try {
+    if (me.role === "pharmacy") {
+      if (view === "search") catalog = (await api("catalog", { q: query, category: filter })).products;
+      if (view === "orders") orders = (await api("orders")).orders;
+    } else {
+      if (view === "myproducts") myProducts = (await api("my_products")).products;
+      if (view === "suporders") orders = (await api("orders")).orders;
+    }
+  } catch (e) { toast(e.message); }
+  render();
+}
+function go(v) { view = v; refresh(); }
+
+/* ============ render ============ */
+function render() {
+  const tabs = me.role === "pharmacy"
+    ? [["search","Search & Order"],["cart","Order Basket"],["orders","My Orders"]]
+    : [["myproducts","My Products"],["suporders","Incoming Orders"]];
+  el("nav").innerHTML = tabs.map(([v,l]) =>
+    `<button class="${view===v?'active':''}" onclick="go('${v}')">${l}</button>`).join("");
+  el("who").innerHTML = `Signed in: <b>${esc(me.name)}</b>`;
+  const count = cart.reduce((s,c)=>s+c.qty,0);
+  el("fab").classList.toggle("hidden", !(me.role === "pharmacy" && count && view !== "cart"));
+  el("fab").textContent = `Order basket (${count})`;
+  const views = { search:vSearch, cart:vCart, orders:vOrders, myproducts:vMyProducts, suporders:vSupOrders };
+  el("main").innerHTML = views[view]();
+  applyTheme();
+  if (view === "search") {
+    const q = el("q");
+    if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+  }
+}
+
+/* ---------- pharmacy: search ---------- */
+let searchTimer = null;
+function onQuery(v) {
+  query = v;
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => refresh(), 180);
+}
+function vSearch() {
+  let html = `<h2 class="page">What do you need to order?</h2>
+    <div class="sub">Search by product or generic name. The cheapest in-stock offer is marked.</div>
+    <div class="searchwrap">
+      <input id="q" type="text" placeholder="e.g. paracetamol, Dettol, amoxicillin…" value="${esc(query)}"
+        oninput="onQuery(this.value)">
+    </div>
+    <div class="chips">${["All","Drug","Personal care"].map(c =>
+      `<span class="chip ${filter===c?'active':''}" onclick="filter='${c}';refresh()">${c}</span>`).join("")}</div>`;
+
+  if (!catalog.length)
+    return html + `<div class="empty">No products found${query ? ` for “${esc(query)}”` : ""}.<br>Try the generic name, e.g. “paracetamol” instead of a brand.</div>`;
+
+  catalog.forEach(p => {
+    html += `<div class="card">
+      <h3>${esc(p.name)}</h3>
+      <div class="gname">${p.generic ? "Generic: " + esc(p.generic) + " · " : ""}${esc(p.category)}</div>
+      <table>
+        <tr><th>Supplier</th><th>Price</th><th>Expiry</th><th>Stock</th><th></th></tr>
+        ${p.offers.map(o => `<tr>
+          <td>${esc(o.supplier)}</td>
+          <td class="price ${o.best?'best':''}">${N(o.price)}${o.best?" · best":""}</td>
+          <td class="exp">${fmtExp(o.expiry)} ${o.short_dated?'<span class="badge b-short">short-dated</span>':""}</td>
+          <td>${o.in_stock?'<span class="badge b-in">in stock</span>':'<span class="badge b-out">out of stock</span>'}</td>
+          <td style="text-align:right"><button class="add" ${o.in_stock?"":"disabled"}
+            onclick='addToCart(${JSON.stringify({offer_id:o.offer_id,name:p.name,price:o.price,supplier:o.supplier,expiry:o.expiry,short_dated:o.short_dated}).replace(/'/g,"&#39;")})'>Add</button></td>
+        </tr>`).join("")}
+      </table>
+    </div>`;
+  });
+  return html;
+}
+function addToCart(item) {
+  const line = cart.find(c => c.offer_id === item.offer_id);
+  line ? line.qty++ : cart.push(Object.assign({ qty: 1 }, item));
+  toast("Added to order basket");
+  render();
+}
+
+/* ---------- pharmacy: basket ---------- */
+function vCart() {
+  let html = `<h2 class="page">Order basket</h2>
+    <div class="sub">Orders are grouped by supplier — each supplier gets their own order.</div>`;
+  if (!cart.length)
+    return html + `<div class="empty">Your basket is empty.<br><br>
+      <button class="btn btn-primary" style="width:auto" onclick="go('search')">Search products</button></div>`;
+
+  const bySup = {};
+  cart.forEach(c => (bySup[c.supplier] = bySup[c.supplier] || []).push(c));
+  Object.entries(bySup).forEach(([sup, lines]) => {
+    const total = lines.reduce((s,c) => s + c.price*c.qty, 0);
+    html += `<div class="card">
+      <h3 style="margin-bottom:12px">${esc(sup)}</h3>
+      <table>
+        <tr><th>Product</th><th>Unit price</th><th>Qty</th><th>Line total</th><th></th></tr>
+        ${lines.map(c => `<tr>
+          <td>${esc(c.name)}${c.short_dated?' <span class="badge b-short">short-dated</span>':""}</td>
+          <td>${N(c.price)}</td>
+          <td><input class="qty" type="number" min="1" value="${c.qty}" onchange="setQty(${c.offer_id},this.value)"></td>
+          <td class="price">${N(c.price*c.qty)}</td>
+          <td><button class="rm" onclick="removeLine(${c.offer_id})">remove</button></td>
+        </tr>`).join("")}
+      </table>
+      <div class="total-row"><span>Total to ${esc(sup)}</span><span>${N(total)}</span></div>
+    </div>`;
+  });
+
+  html += `<div class="card">
+    <label class="field" for="pay">Payment method for this order</label>
+    <select id="pay" class="inp" onchange="payment=this.value">
+      ${Object.entries(paymentMethods).map(([k,v]) =>
+        `<option value="${k}" ${payment===k?"selected":""}>${esc(v)}</option>`).join("")}
+    </select>
+    <div class="exp" style="margin-top:8px">Recorded on the order so both sides agree up front. Can be changed any time.</div>
+  </div>
+  <button class="btn btn-primary" style="width:auto" onclick="placeOrder()">Place order${Object.keys(bySup).length>1?"s":""}</button>`;
+  return html;
+}
+function setQty(id, v) { const l = cart.find(c=>c.offer_id===id); l.qty = Math.max(1, parseInt(v)||1); render(); }
+function removeLine(id) { cart = cart.filter(c => c.offer_id !== id); render(); }
+async function placeOrder() {
+  try {
+    const r = await api("place_order", {
+      items: cart.map(c => ({ offer_id: c.offer_id, qty: c.qty })), payment_method: payment });
+    cart = [];
+    toast("Order sent: " + r.refs.join(", ") + " — no phone call needed");
+    go("orders");
+  } catch (e) { toast(e.message); }
+}
+
+/* ---------- pharmacy: orders ---------- */
+function vOrders() {
+  let html = `<h2 class="page">My orders</h2><div class="sub">Everything ordered, newest first.</div>`;
+  if (!orders.length) return html + `<div class="empty">No orders yet.</div>`;
+  orders.forEach(o => {
+    const badge = o.status === "Delivered" ? "b-in" : o.status === "Confirmed" ? "b-new" : "b-short";
+    html += `<div class="card">
+      <div class="order-head">
+        <span class="oid">${esc(o.ref)} · ${esc(o.supplier)}</span>
+        <span><span class="badge ${badge}">${esc(o.status)}</span></span>
+      </div>
+      <div class="odate">Placed ${fmtDate(o.placed_at)} · ${esc(o.payment_label)}</div>
+      <table style="margin-top:10px">
+        ${o.items.map(i=>`<tr><td>${esc(i.product_name)}</td><td class="exp">exp ${fmtExp(i.expiry)}</td>
+          <td>× ${i.qty}</td><td class="price">${N(i.qty*i.unit_price)}</td></tr>`).join("")}
+        <tr><td></td><td></td><td style="font-weight:700">Total</td><td class="price">${N(o.total)}</td></tr>
+      </table>
+    </div>`;
+  });
+  return html;
+}
+
+/* ---------- supplier: my products ---------- */
+function vMyProducts() {
+  let html = `<h2 class="page">My products</h2>
+    <div class="sub">Change a price or expiry, or tap the stock label to switch it. The pharmacy sees updates immediately.</div>
+    <div class="savebar">✓ Every change saves by itself — there is no save button to remember.</div>`;
+
+  html += `<div class="card"><table>
+    <tr><th>Product</th><th>Price (₦)</th><th>Expiry</th><th>Stock</th></tr>
+    ${myProducts.map(p => `<tr>
+      <td>${esc(p.name)}<div class="exp">${p.generic ? esc(p.generic)+" · " : ""}${esc(p.category)}</div></td>
+      <td><input class="sup-input" type="number" value="${p.price}" onchange="updOffer(${p.offer_id},{price:this.value})"></td>
+      <td><input class="sup-input" style="width:150px" type="month" value="${p.expiry.slice(0,7)}"
+            onchange="updOffer(${p.offer_id},{expiry:this.value})">
+          ${p.short_dated?'<div style="margin-top:4px"><span class="badge b-short">short-dated</span></div>':""}</td>
+      <td class="toggle" onclick="updOffer(${p.offer_id},{in_stock:${p.in_stock?0:1}})">
+          ${p.in_stock?'<span class="badge b-in">in stock</span>':'<span class="badge b-out">out of stock</span>'}
+          <div class="exp">tap to change</div></td>
+    </tr>`).join("")}
+  </table></div>`;
+
+  html += `<div class="card">
+    <h3 style="margin-bottom:12px">Add a product</h3>
+    <div class="row">
+      <div><label class="field">Product name</label><input id="np" class="inp" placeholder="e.g. Panadol Extra (48 tabs)"></div>
+      <div><label class="field">Generic name</label><input id="ng" class="inp" placeholder="e.g. Paracetamol"></div>
+      <div><label class="field">Category</label>
+        <select id="nc" class="inp"><option>Drug</option><option>Personal care</option><option>Other</option></select></div>
+      <div><label class="field">Price (₦)</label><input id="nr" class="inp" type="number" style="width:120px" placeholder="1500"></div>
+      <div><label class="field">Expiry</label><input id="ne" class="inp" type="month"></div>
+      <button class="btn btn-primary" style="width:auto" onclick="addProduct()">Add</button>
+    </div>
+  </div>`;
+
+  html += `<div class="card">
+    <h3 style="margin-bottom:6px">Update many at once (price list import)</h3>
+    <div class="exp" style="margin-bottom:12px">Paste rows from your price list — one product per line:
+      <b>name, price, expiry (YYYY-MM), in stock (yes/no)</b>. Existing products are updated, new ones are added.</div>
+    <textarea id="imp" class="inp" placeholder="Emzor Paracetamol 500mg (96 tabs), 1400, 2028-03, yes
+Vitamin C 1000mg (30 tabs), 3300, 2028-06, yes"></textarea>
+    <button class="btn btn-primary" style="width:auto;margin-top:12px" onclick="importList()">Import price list</button>
+  </div>`;
+  return html;
+}
+async function updOffer(offer_id, changes) {
+  try { await api("update_offer", Object.assign({ offer_id }, changes)); toast("Saved — the pharmacy sees it now"); }
+  catch (e) { toast(e.message); }
+  refresh();
+}
+async function addProduct() {
+  try {
+    await api("add_product", { name: el("np").value, generic: el("ng").value, category: el("nc").value,
+                               price: el("nr").value, expiry: el("ne").value });
+    toast("Product added to your list"); refresh();
+  } catch (e) { toast(e.message); }
+}
+async function importList() {
+  try {
+    const r = await api("import_price_list", { text: el("imp").value });
+    toast(`Imported — ${r.updated} updated, ${r.added} added${r.skipped ? ", " + r.skipped + " skipped" : ""}`);
+    refresh();
+  } catch (e) { toast(e.message); }
+}
+
+/* ---------- supplier: incoming orders ---------- */
+function vSupOrders() {
+  let html = `<h2 class="page">Incoming orders</h2>
+    <div class="sub">Confirm an order and the pharmacy knows straight away — no call-backs.</div>`;
+  if (!orders.length) return html + `<div class="empty">No orders yet.</div>`;
+  orders.forEach(o => {
+    const pending = o.status === "Sent";
+    const badge = o.status === "Delivered" ? "b-in" : o.status === "Confirmed" ? "b-new" : "b-short";
+    html += `<div class="card">
+      <div class="order-head">
+        <span class="oid">${esc(o.ref)}</span>
+        <span><span class="badge ${badge}">${esc(o.status)}</span></span>
+      </div>
+      <div class="odate">Received ${fmtDate(o.placed_at)} · ${esc(o.payment_label)}</div>
+      <table style="margin-top:10px">
+        ${o.items.map(i=>`<tr><td>${esc(i.product_name)}</td><td class="exp">exp ${fmtExp(i.expiry)}</td>
+          <td>× ${i.qty}</td><td class="price">${N(i.qty*i.unit_price)}</td></tr>`).join("")}
+        <tr><td></td><td></td><td style="font-weight:700">Total</td><td class="price">${N(o.total)}</td></tr>
+      </table>
+      <div style="margin-top:12px;display:flex;gap:10px">
+        <button class="confirm" ${pending?"":"disabled"} onclick="setStatus(${o.id},'Confirmed')">
+          ${pending?"Confirm order":"Confirmed ✓"}</button>
+        ${o.status==="Confirmed"?`<button class="btn btn-ghost" style="width:auto;padding:8px 16px;font-size:13.5px"
+          onclick="setStatus(${o.id},'Delivered')">Mark delivered</button>`:""}
+      </div>
+    </div>`;
+  });
+  return html;
+}
+async function setStatus(order_id, status) {
+  try { await api("update_order", { order_id, status }); toast("Order marked " + status.toLowerCase()); refresh(); }
+  catch (e) { toast(e.message); }
+}
+</script>
+</body>
+</html>
