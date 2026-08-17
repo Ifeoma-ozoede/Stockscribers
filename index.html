@@ -36,22 +36,11 @@
   /* login */
   #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 20px;
     background:var(--login-bg);transition:background .4s ease}
-  .login-wrap{display:flex;gap:38px;align-items:center;justify-content:center;flex-wrap:wrap;
-    max-width:1020px;width:100%}
-  .about{flex:1 1 400px;max-width:470px;color:var(--ink)}
-  .about h1{font-size:27px;color:var(--ink-strong);letter-spacing:-.4px;margin-bottom:6px}
-  .about .lead{font-size:15.5px;color:var(--muted);margin-bottom:20px;line-height:1.55}
-  .about h4{font-size:12px;text-transform:uppercase;letter-spacing:.9px;color:var(--accent);
-    margin:20px 0 7px;font-weight:700}
-  .about p{font-size:14.5px;line-height:1.65;color:var(--ink)}
-  .about ol{margin:0;padding-left:19px;font-size:14.5px;line-height:1.75}
-  .about ol li::marker{color:var(--accent);font-weight:700}
-  .about .stack{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
-  .about .tag{font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;
-    background:var(--accent-soft);color:var(--accent);border:1px solid var(--line)}
-  .about .madeby{margin-top:22px;font-size:13px;color:var(--muted)}
-  .about .madeby a{color:var(--accent);font-weight:600}
-  @media(max-width:900px){ .login-wrap{gap:26px} .about{flex:1 1 100%;max-width:470px} }
+  .blurb{font-size:13.5px;line-height:1.6;color:var(--muted);text-align:left;
+    margin:0 0 22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .madeby{margin-top:16px;font-size:12.5px;color:var(--muted)}
+  .madeby a{color:var(--accent);font-weight:600;text-decoration:none}
+  .madeby a:hover{text-decoration:underline}
   .login-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:38px 34px;
     max-width:410px;width:100%;box-shadow:var(--shadow);text-align:center}
   .logo{font-size:29px;font-weight:800;color:var(--accent);letter-spacing:-.5px}
@@ -158,49 +147,12 @@
 
 <!-- ================= LOGIN ================= -->
 <div id="login">
- <div class="login-wrap">
-
-  <!-- about this project — for anyone visiting the demo -->
-  <div class="about">
-    <h1>Stockscribes</h1>
-    <p class="lead">A stock-ordering platform for pharmacies and the wholesalers who supply them.</p>
-
-    <h4>The problem</h4>
-    <p>Pharmacies in Nigeria order stock by phone. Every restock means calling each supplier to ask
-       what's available and what it costs — with no way to compare prices, and no record afterwards.</p>
-
-    <h4>How it works</h4>
-    <p>Two kinds of users share one live catalogue. Pharmacy staff search, compare prices across
-       suppliers and order in a few clicks. Suppliers sign in to keep their own prices, stock and
-       expiry dates current, and to confirm incoming orders — so the pharmacy always sees today's
-       information without picking up the phone.</p>
-
-    <h4>Try it — two minutes</h4>
-    <ol>
-      <li>Sign in as the pharmacy and search <b>paracetamol</b>. Three suppliers, cheapest marked —
-          note that it's the short-dated one, which is how pricing really works.</li>
-      <li>Add something to the basket and place an order. It splits by supplier automatically.</li>
-      <li>Open a private browser window, sign in as the supplier, change a price or mark an item
-          out of stock, then refresh the pharmacy window.</li>
-    </ol>
-
-    <h4>Built with</h4>
-    <div class="stack">
-      <span class="tag">Python</span><span class="tag">SQLite</span>
-      <span class="tag">JavaScript</span><span class="tag">HTML &amp; CSS</span>
-      <span class="tag">No frameworks</span>
-    </div>
-    <p style="margin-top:10px;font-size:13.5px;color:var(--muted)">
-      Session-based sign-in with hashed passwords, separate permissions for each role, and a theme
-      that switches from light to dark at 6pm by itself.</p>
-
-    <div class="madeby">Designed and built by Ify Ozoede ·
-      <a href="https://github.com/" target="_blank" rel="noopener">source code on GitHub</a></div>
-  </div>
-
   <div class="login-card">
     <div class="logo">Stock<span>scribes</span></div>
     <div class="tagline">Pharmacy stock ordering — no phone calls</div>
+    <p class="blurb">Pharmacies order stock by phone, with no way to compare suppliers.
+      Stockscribes puts both sides on one catalogue: staff compare prices, expiry dates and
+      availability at a glance, while suppliers keep their own listings current and confirm orders.</p>
     <div id="loginerr" class="err hidden"></div>
     <input id="email" type="email" placeholder="Email address" autocomplete="username">
     <input id="password" type="password" placeholder="Password" autocomplete="current-password">
@@ -217,9 +169,9 @@
       <span id="themenote"></span>
       <button class="themebtn" style="margin-top:9px" onclick="cycleTheme()">Preview other mode</button>
     </div>
+    <div class="madeby">Built by Ify Ozoede —
+      <a href="https://ifeomaozoede.com" target="_blank" rel="noopener">ifeomaozoede.com</a></div>
   </div>
-
- </div>
 </div>
 
 <!-- ================= APP ================= -->
@@ -304,8 +256,9 @@ async function doLogin() {
     el("login").classList.add("hidden"); el("app").classList.remove("hidden");
     try { const pm = await (await fetch("/api/payment-methods")).json();
           paymentMethods = pm.methods; payment = pm.default; } catch (e) {}
-    view = me.role === "pharmacy" ? "search" : "myproducts";
-    await refresh();
+    const start = tabsFor(me.role)[0];
+    if (location.hash.slice(1) === start) { view = start; await refresh(); }
+    else { location.hash = start; }        // sets the address, which loads the first tab
   } catch (e) {
     errBox.textContent = e.message; errBox.classList.remove("hidden");
   }
@@ -317,7 +270,9 @@ async function doLogout() {
   try { await api("logout"); } catch (e) {}
   token = null; me = null; cart = [];
   el("app").classList.add("hidden"); el("login").classList.remove("hidden");
-  el("password").value = ""; applyTheme();
+  el("password").value = "";
+  history.replaceState(null, "", location.pathname);   // clear the tab from the address
+  applyTheme();
 }
 
 /* ============ data loading ============ */
@@ -333,7 +288,23 @@ async function refresh() {
   } catch (e) { toast(e.message); }
   render();
 }
-function go(v) { view = v; refresh(); }
+
+/* ---- moving between tabs, with working Back and Forward buttons ----
+   Each tab gets its own web address (…/#orders), so the browser records it in history. */
+const tabsFor = (role) => role === "pharmacy" ? ["search", "cart", "orders"] : ["myproducts", "suporders"];
+
+function go(v) {
+  if (location.hash.slice(1) === v) { refresh(); return; }  // already there — just reload it
+  location.hash = v;                                        // this triggers applyRoute below
+}
+function applyRoute() {
+  if (!me) return;                                          // signed out; nothing to show
+  const allowed = tabsFor(me.role);
+  const wanted = decodeURIComponent(location.hash.slice(1));
+  view = allowed.includes(wanted) ? wanted : allowed[0];
+  refresh();
+}
+window.addEventListener("hashchange", applyRoute);
 
 /* ============ render ============ */
 function render() {
