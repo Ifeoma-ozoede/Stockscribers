@@ -74,6 +74,12 @@
   .btn-ghost:hover{background:var(--accent-soft)}
   .err{background:var(--red-bg);color:var(--red);border-radius:9px;padding:10px 12px;font-size:13.5px;
     margin-bottom:12px;font-weight:600;text-align:left}
+  /* password box with a Show / Hide button inside it */
+  .pwwrap{position:relative;margin-bottom:12px}
+  .pwwrap input{margin-bottom:0!important;padding-right:70px!important}
+  .pwtoggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;
+    color:var(--accent);font-size:12.5px;font-weight:700;cursor:pointer;padding:6px 8px;border-radius:6px}
+  .pwtoggle:hover{background:var(--accent-soft)}
   .demo-note{font-size:12px;color:var(--muted);margin-top:18px;line-height:1.7}
   .demo-note code{background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:5px;font-size:11.5px}
 
@@ -180,7 +186,10 @@
     <p class="blurb">One shared catalogue for pharmacies and the wholesalers who supply them.</p>
     <div id="loginerr" class="err hidden"></div>
     <input id="email" type="email" placeholder="Email address" autocomplete="username">
-    <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+    <div class="pwwrap">
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+      <button type="button" class="pwtoggle" id="pwtoggle" onclick="togglePassword()">Show</button>
+    </div>
     <button class="btn btn-primary" onclick="doLogin()">Sign in</button>
     <div id="demobox" class="demo-note hidden" style="background:var(--amber-bg);color:var(--amber);
       border-radius:9px;padding:10px 12px;margin:0 0 14px;text-align:left;font-weight:600">
@@ -283,6 +292,14 @@ async function api(action, body) {
 }
 
 /* ============ auth ============ */
+function togglePassword() {
+  const box = el("password"), btn = el("pwtoggle");
+  const showing = box.type === "text";
+  box.type = showing ? "password" : "text";
+  btn.textContent = showing ? "Show" : "Hide";
+  box.focus();
+}
+
 async function doLogin() {
   const email = el("email").value.trim(), password = el("password").value;
   const errBox = el("loginerr");

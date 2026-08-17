@@ -129,9 +129,9 @@ SEED_SUPPLIERS = ["Alpha Pharma Distributors", "BlueRiver Wholesale", "Kola Heal
 SEED_USERS = [
     # email, password, display name, role, supplier name (None for pharmacy staff)
     ("staff@stockscribes.ng", "stockscribes123", "Stockscribes Pharmacy", "pharmacy", None),
-    ("alpha@supplier.ng", "alpha123", "Alpha Pharma Distributors", "supplier", "Alpha Pharma Distributors"),
-    ("blue@supplier.ng", "blue123", "BlueRiver Wholesale", "supplier", "BlueRiver Wholesale"),
-    ("kola@supplier.ng", "kola123", "Kola Health Supplies", "supplier", "Kola Health Supplies"),
+    ("alpha@supplier.ng", "alpha-demo-2026", "Alpha Pharma Distributors", "supplier", "Alpha Pharma Distributors"),
+    ("blue@supplier.ng", "blue-demo-2026", "BlueRiver Wholesale", "supplier", "BlueRiver Wholesale"),
+    ("kola@supplier.ng", "kola-demo-2026", "Kola Health Supplies", "supplier", "Kola Health Supplies"),
 ]
 
 # product name, generic, category, [(supplier, price, expiry, in_stock)]
@@ -179,6 +179,20 @@ def migrate(conn):
             ("staff@stockscribes.ng", hash_password("stockscribes123"), "Stockscribes Pharmacy", old["id"]))
         conn.commit()
         print("Updated the pharmacy sign-in to staff@stockscribes.ng / stockscribes123")
+
+    # The first supplier passwords (alpha123 and friends) were common enough that browsers
+    # flagged them as appearing in known password breaches. Replace them — but only where the
+    # old one is still in place, so a password set deliberately is never overwritten.
+    for email, was, now in (("alpha@supplier.ng", "alpha123", "alpha-demo-2026"),
+                            ("blue@supplier.ng", "blue123", "blue-demo-2026"),
+                            ("kola@supplier.ng", "kola123", "kola-demo-2026")):
+        row = conn.execute("SELECT id, password_hash FROM users WHERE lower(email) = ?",
+                           (email,)).fetchone()
+        if row and check_password(was, row["password_hash"]):
+            conn.execute("UPDATE users SET password_hash = ? WHERE id = ?",
+                         (hash_password(now), row["id"]))
+            conn.commit()
+            print(f"Updated {email} to a password browsers won't flag")
 
 
 def init_db():
@@ -639,9 +653,9 @@ def main():
     print(f"  Open this in your browser:  http://localhost:{port}\n")
     print("  Sign in with:")
     print("    Pharmacy staff   staff@stockscribes.ng     / stockscribes123")
-    print("    Supplier (Alpha) alpha@supplier.ng   / alpha123")
-    print("    Supplier (Blue)  blue@supplier.ng    / blue123")
-    print("    Supplier (Kola)  kola@supplier.ng    / kola123\n")
+    print("    Supplier (Alpha) alpha@supplier.ng   / alpha-demo-2026")
+    print("    Supplier (Blue)  blue@supplier.ng    / blue-demo-2026")
+    print("    Supplier (Kola)  kola@supplier.ng    / kola-demo-2026\n")
     print("  Press Ctrl+C to stop.\n")
     try:
         Server(("0.0.0.0", port), Handler).serve_forever()
