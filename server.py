@@ -568,12 +568,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._send(200, {"methods": PAYMENT_METHODS, "default": DEFAULT_PAYMENT})
         if path == "/api/site-info":
             return self._send(200, {"demo": DEMO_MODE})
+        if path == "/favicon.ico":
+            self.send_response(204)          # no icon file; say "nothing here" quietly
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+
         safe = os.path.normpath(path).lstrip("/\\")
         full = os.path.join(HERE, safe)
         if os.path.isfile(full) and full.startswith(HERE):
             ctype = mimetypes.guess_type(full)[0] or "application/octet-stream"
             return self._serve_file(safe, ctype)
-        self._send(404, {"error": "Not found"})
+
+        # Unknown /api/... address — the browser is asking for data, so answer in kind.
+        if path.startswith("/api/"):
+            return self._send(404, {"error": "Not found"})
+
+        # Any other address (a mistyped link, an old bookmark, a stray slash) just shows
+        # the site rather than an error page.
+        self._serve_file("index.html", "text/html; charset=utf-8")
 
     def _serve_file(self, relative, ctype):
         try:
