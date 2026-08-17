@@ -122,7 +122,18 @@ CREATE TABLE IF NOT EXISTS order_items (
     qty          INTEGER NOT NULL,
     unit_price   INTEGER NOT NULL
 );
+
+-- Each person's own preferences. Kept here rather than in the browser so the choice
+-- follows them to any computer they sign in from.
+CREATE TABLE IF NOT EXISTS user_settings (
+    user_id     INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    theme_mode  TEXT NOT NULL DEFAULT 'day',    -- 'day', 'night' or 'schedule'
+    day_start   TEXT NOT NULL DEFAULT '06:00',  -- when the light screen begins
+    night_start TEXT NOT NULL DEFAULT '18:00'   -- when the dark screen begins
+);
 """
+
+DEFAULT_SETTINGS = {"theme_mode": "day", "day_start": "06:00", "night_start": "18:00"}
 
 SEED_SUPPLIERS = ["Alpha Pharma Distributors", "BlueRiver Wholesale", "Kola Health Supplies"]
 
@@ -483,6 +494,56 @@ class Api:
         conn.commit()
         return 200, {"ok": True}
 
+    # ---------- personal settings ----------
+    @staticmethod
+    def get_settings(user, body, conn):
+        row = conn.execute("SELECT theme_mode, day_start, night_start FROM user_settings"
+                           " WHERE user_id = ?", (user["id"],)).fetchone()
+        return 200, {"settings": dict(row) if row else dict(DEFAULT_SETTINGS)}
+
+    @staticmethod
+    def save_settings(user, body, conn):
+        mode = body.get("theme_mode") or "day"
+        if mode not in ("day", "night", "schedule"):
+            return 400, {"error": "Unknown display mode."}
+
+        # Times left out of the request keep whatever was saved before (or the defaults),
+        # so switching to 'day' or 'night' doesn't require sending them.
+        existing = conn.execute("SELECT day_start, night_start FROM user_settings WHERE user_id = ?",
+                                (user["id"],)).fetchone()
+        current = dict(existing) if existing else dict(DEFAULT_SETTINGS)
+
+        def clean_time(value, fallback):
+            value = (value or "").strip()
+            if not value:
+                return fallback
+            parts = value.split(":")
+            if len(parts) != 2:
+                return None
+            try:
+                h, m = int(parts[0]), int(parts[1])
+            except ValueError:
+                return None
+            if not (0 <= h < 24 and 0 <= m < 60):
+                return None
+            return f"{h:02d}:{m:02d}"
+
+        day_start = clean_time(body.get("day_start"), current["day_start"])
+        night_start = clean_time(body.get("night_start"), current["night_start"])
+        if day_start is None or night_start is None:
+            return 400, {"error": "Please give both times as hours and minutes."}
+        if day_start == night_start:
+            return 400, {"error": "The two times need to be different, otherwise the screen never changes."}
+
+        conn.execute(
+            "INSERT INTO user_settings (user_id, theme_mode, day_start, night_start) VALUES (?,?,?,?)"
+            " ON CONFLICT(user_id) DO UPDATE SET theme_mode = excluded.theme_mode,"
+            " day_start = excluded.day_start, night_start = excluded.night_start",
+            (user["id"], mode, day_start, night_start))
+        conn.commit()
+        return 200, {"ok": True, "settings": {"theme_mode": mode, "day_start": day_start,
+                                              "night_start": night_start}}
+
     @staticmethod
     def import_price_list(user, body, conn):
         """Bulk update from pasted rows: name, price, expiry, in stock.
@@ -543,6 +604,7 @@ ROUTES = {
     "update_order": Api.update_order, "my_products": Api.my_products,
     "update_offer": Api.update_offer, "add_product": Api.add_product,
     "import_price_list": Api.import_price_list,
+    "get_settings": Api.get_settings, "save_settings": Api.save_settings,
 }
 
 

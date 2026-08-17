@@ -95,9 +95,6 @@
   .who{font-size:13px;color:var(--muted)}
   .who b{color:var(--ink-strong)}
   .linkbtn{font-size:13px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600}
-  .themebtn{background:none;border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13px;
-    cursor:pointer;color:var(--muted);font-weight:600;white-space:nowrap}
-  .themebtn:hover{border-color:var(--accent);color:var(--accent)}
   main{width:100%;padding:26px 28px 90px}
   h2.page{font-size:22px;margin-bottom:4px;color:var(--ink-strong)}
   .sub{color:var(--muted);font-size:14px;margin-bottom:20px}
@@ -159,6 +156,17 @@
   .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
   textarea.inp{width:100%;min-height:130px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
 
+  /* settings choices */
+  .choice{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--line);
+    border-radius:12px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,background .15s}
+  .choice:hover{border-color:var(--accent)}
+  .choice.chosen{border-color:var(--accent);background:var(--accent-soft)}
+  .choice input{margin-top:3px;accent-color:var(--accent);width:17px;height:17px;flex-shrink:0}
+  .choice b{display:block;font-size:14.5px;color:var(--ink-strong);margin-bottom:2px}
+  .choice em{font-style:normal;font-size:13px;color:var(--muted);line-height:1.5}
+  .times{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding:16px;border-radius:12px;
+    background:var(--accent-soft);border:1px solid var(--line)}
+
   /* confirmation dialog */
   .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;
     justify-content:center;padding:20px;z-index:80}
@@ -199,9 +207,7 @@
     <div class="demo-note">
       Sign in with:<br>
       Pharmacy — <code>staff@stockscribes.ng</code> / <code>stockscribes123</code><br>
-      Supplier — <code>alpha@supplier.ng</code> / <code>alpha-demo-2026</code><br>
-      <span id="themenote"></span>
-      <button class="themebtn" style="margin-top:9px" onclick="cycleTheme()">Preview other mode</button>
+      Supplier — <code>alpha@supplier.ng</code> / <code>alpha-demo-2026</code>
     </div>
     <div class="madeby">Built by Ifeoma Ozoede —
       <a href="https://ifeomaozoede.com" target="_blank" rel="noopener">ifeomaozoede.com</a></div>
@@ -214,7 +220,6 @@
     <div class="bar">
       <div class="logo">Stock<span>scribes</span></div>
       <nav id="nav"></nav>
-      <button class="themebtn" id="themebtn" onclick="cycleTheme()"></button>
       <span class="who" id="who"></span>
       <button class="linkbtn" onclick="doLogout()">Log out</button>
     </div>
@@ -238,26 +243,32 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ============ day / night theme ============ */
-let themeMode = "auto";
-const nightNow = () => { const h = new Date().getHours(); return h >= 18 || h < 6; };
-function applyTheme() {
-  const dark = themeMode === "auto" ? nightNow() : themeMode === "dark";
-  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-  const btn = document.getElementById("themebtn");
-  if (btn) btn.textContent = (dark ? "🌙 Night" : "☀️ Day") + (themeMode === "auto" ? " (auto)" : " (manual)");
-  const note = document.getElementById("themenote");
-  if (note) note.textContent = themeMode === "auto"
-    ? `Currently ${dark ? "night" : "day"} — switches automatically at 6am / 6pm.`
-    : `Manual ${dark ? "night" : "day"} mode.`;
+/* ============ how the screen looks ============
+   Everyone starts on the day screen. Each person can change this in Settings, and the
+   choice is saved to their account rather than to this browser. */
+let settings = { theme_mode: "day", day_start: "06:00", night_start: "18:00" };
+
+const minutesOf = (hhmm) => {
+  const [h, m] = String(hhmm).split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+};
+
+function isNightNow() {
+  if (settings.theme_mode === "night") return true;
+  if (settings.theme_mode !== "schedule") return false;      // 'day' or anything unexpected
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const dayAt = minutesOf(settings.day_start), nightAt = minutesOf(settings.night_start);
+  return nightAt > dayAt
+    ? (mins >= nightAt || mins < dayAt)     // normal: light during the day, dark in the evening
+    : (mins >= nightAt && mins < dayAt);    // reversed times, handled rather than ignored
 }
-function cycleTheme() {
-  themeMode = themeMode === "auto" ? (nightNow() ? "light" : "dark") : themeMode === "dark" ? "light" : "auto";
-  applyTheme();
-  toast(themeMode === "auto" ? "Back to automatic day/night" : "Manual preview — click again to cycle");
+
+function applyTheme() {
+  document.documentElement.setAttribute("data-theme", isNightNow() ? "dark" : "light");
 }
 applyTheme();
-setInterval(() => { if (themeMode === "auto") applyTheme(); }, 60000);
+setInterval(() => { if (settings.theme_mode === "schedule") applyTheme(); }, 30000);
 
 /* show the demo notice only when the site is running as a public demo */
 fetch("/api/site-info").then(r => r.json()).then(info => {
@@ -310,6 +321,7 @@ async function doLogin() {
     el("login").classList.add("hidden"); el("app").classList.remove("hidden");
     try { const pm = await (await fetch("/api/payment-methods")).json();
           paymentMethods = pm.methods; payment = pm.default; } catch (e) {}
+    try { settings = (await api("get_settings")).settings; applyTheme(); } catch (e) {}
     const start = tabsFor(me.role)[0];
     if (location.hash.slice(1) === start) { view = start; await refresh(); }
     else { location.hash = start; }        // sets the address, which loads the first tab
@@ -345,7 +357,9 @@ async function refresh() {
 
 /* ---- moving between tabs, with working Back and Forward buttons ----
    Each tab gets its own web address (…/#orders), so the browser records it in history. */
-const tabsFor = (role) => role === "pharmacy" ? ["search", "cart", "orders"] : ["myproducts", "suporders"];
+const tabsFor = (role) => role === "pharmacy"
+  ? ["search", "cart", "orders", "settings"]
+  : ["myproducts", "suporders", "settings"];
 
 function go(v) {
   if (location.hash.slice(1) === v) { refresh(); return; }  // already there — just reload it
@@ -394,15 +408,16 @@ function confirmBox({ title, text, yes, no, onYes, onNo }) {
 /* ============ render ============ */
 function render() {
   const tabs = me.role === "pharmacy"
-    ? [["search","Search & Order"],["cart","Order Basket"],["orders","My Orders"]]
-    : [["myproducts","My Products"],["suporders","Incoming Orders"]];
+    ? [["search","Search & Order"],["cart","Order Basket"],["orders","My Orders"],["settings","Settings"]]
+    : [["myproducts","My Products"],["suporders","Incoming Orders"],["settings","Settings"]];
   el("nav").innerHTML = tabs.map(([v,l]) =>
     `<button class="${view===v?'active':''}" onclick="go('${v}')">${l}</button>`).join("");
   el("who").innerHTML = `Signed in: <b>${esc(me.name)}</b>`;
   const count = cart.reduce((s,c)=>s+c.qty,0);
   el("fab").classList.toggle("hidden", !(me.role === "pharmacy" && count && view !== "cart"));
   el("fab").textContent = `Order basket (${count})`;
-  const views = { search:vSearch, cart:vCart, orders:vOrders, myproducts:vMyProducts, suporders:vSupOrders };
+  const views = { search:vSearch, cart:vCart, orders:vOrders, myproducts:vMyProducts,
+                  suporders:vSupOrders, settings:vSettings };
   el("main").innerHTML = views[view]();
   applyTheme();
   if (view === "search") {
@@ -590,6 +605,67 @@ async function importList() {
     const r = await api("import_price_list", { text: el("imp").value });
     toast(`Imported — ${r.updated} updated, ${r.added} added${r.skipped ? ", " + r.skipped + " skipped" : ""}`);
     refresh();
+  } catch (e) { toast(e.message); }
+}
+
+/* ---------- settings ---------- */
+function vSettings() {
+  const s = settings;
+  const opt = (value, title, desc) => `
+    <label class="choice ${s.theme_mode === value ? "chosen" : ""}">
+      <input type="radio" name="thememode" value="${value}" ${s.theme_mode === value ? "checked" : ""}
+             onchange="pickMode('${value}')">
+      <span><b>${title}</b><em>${desc}</em></span>
+    </label>`;
+
+  return `<h2 class="page">Settings</h2>
+    <div class="sub">Your choices are saved to your account, so they follow you to any computer.</div>
+
+    <div class="card" style="max-width:640px">
+      <h3 style="margin-bottom:4px">Screen appearance</h3>
+      <div class="exp" style="margin-bottom:16px">Choose how the screen looks while you work.</div>
+
+      ${opt("day", "Always daytime", "Light screen at all times. This is the default.")}
+      ${opt("night", "Always night-time", "Dark screen at all times — easier on the eyes in low light.")}
+      ${opt("schedule", "Change at set times", "Light during the day, dark in the evening.")}
+
+      <div id="times" class="times ${s.theme_mode === "schedule" ? "" : "hidden"}">
+        <div>
+          <label class="field" for="dayStart">Daytime screen starts at</label>
+          <input class="inp" type="time" id="dayStart" value="${esc(s.day_start)}">
+        </div>
+        <div>
+          <label class="field" for="nightStart">Night-time screen starts at</label>
+          <input class="inp" type="time" id="nightStart" value="${esc(s.night_start)}">
+        </div>
+      </div>
+
+      <div style="margin-top:20px">
+        <button class="btn btn-primary" style="width:auto" onclick="saveSettings()">Save settings</button>
+      </div>
+    </div>`;
+}
+
+function pickMode(mode) {
+  settings.theme_mode = mode;
+  const times = el("times");
+  if (times) times.classList.toggle("hidden", mode !== "schedule");
+  document.querySelectorAll(".choice").forEach(c =>
+    c.classList.toggle("chosen", c.querySelector("input").value === mode));
+  applyTheme();                                  // show the change straight away
+}
+
+async function saveSettings() {
+  const body = {
+    theme_mode: settings.theme_mode,
+    day_start: el("dayStart") ? el("dayStart").value : settings.day_start,
+    night_start: el("nightStart") ? el("nightStart").value : settings.night_start,
+  };
+  try {
+    const r = await api("save_settings", body);
+    settings = r.settings;
+    applyTheme();
+    toast("Settings saved");
   } catch (e) { toast(e.message); }
 }
 
