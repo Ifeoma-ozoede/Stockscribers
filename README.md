@@ -2,9 +2,9 @@
 
 **A stock-ordering platform for pharmacies and the wholesalers who supply them.**
 
-🔗 **[Try the live demo →](https://stockscribers.onrender.com)**
+🔗 **[Try the live demo →](https://stockscribes.onrender.com)**
 Sign in as the pharmacy (`staff@stockscribes.ng` / `stockscribes123`) or as a supplier
-(`alpha@supplier.ng` / `alpha123`). Sample data only.
+(`alpha@supplier.ng` / `alpha-demo-2026`). Sample data only.
 
 > The demo runs on a free host, so it sleeps when idle — the first visit after a quiet spell
 > takes about a minute to wake up.
@@ -104,4 +104,4 @@ Planned next:
 
 ---
 
-Designed and built by **Ify Ozoede** — [ifeomaozoede.com](https://ifeomaozoede.com)
+Designed and built by **Ifeoma Ozoede** — [ifeomaozoede.com](https://ifeomaozoede.com)

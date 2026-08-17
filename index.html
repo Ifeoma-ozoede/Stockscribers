@@ -153,6 +153,16 @@
   .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
   textarea.inp{width:100%;min-height:130px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
 
+  /* confirmation dialog */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;
+    justify-content:center;padding:20px;z-index:80}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 28px;
+    max-width:400px;width:100%;box-shadow:var(--shadow);text-align:left}
+  .modal h3{font-size:18px;color:var(--ink-strong);margin-bottom:8px}
+  .modal p{font-size:14.5px;line-height:1.6;color:var(--muted);margin-bottom:22px}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+  .modal-actions .btn{width:auto;padding:10px 18px;font-size:14.5px}
+
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;background:var(--ink-strong);
     color:var(--bg);padding:12px 22px;border-radius:10px;font-size:14.5px;opacity:0;transition:opacity .25s;
     pointer-events:none;z-index:60;font-weight:600;max-width:90vw;text-align:center}
@@ -202,6 +212,18 @@
   </header>
   <main id="main"></main>
   <button id="fab" class="fab hidden" onclick="go('cart')">Order basket (0)</button>
+</div>
+
+<!-- confirmation dialog, used when Back would sign you out -->
+<div id="modal" class="modal-bg hidden">
+  <div class="modal">
+    <h3 id="modalTitle"></h3>
+    <p id="modalText"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modalNo"></button>
+      <button class="btn btn-primary" id="modalYes"></button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -316,10 +338,41 @@ function applyRoute() {
   if (!me) return;                                          // signed out; nothing to show
   const allowed = tabsFor(me.role);
   const wanted = decodeURIComponent(location.hash.slice(1));
+
+  // No tab in the address means the browser's Back button has taken us past the first tab,
+  // back towards the sign-in page. Ask before signing out.
+  if (!wanted) return askBeforeSignOut();
+
   view = allowed.includes(wanted) ? wanted : allowed[0];
   refresh();
 }
 window.addEventListener("hashchange", applyRoute);
+
+function askBeforeSignOut() {
+  confirmBox({
+    title: "Leave and sign out?",
+    text: "Going back returns you to the sign-in page, which signs you out. Anything in your order basket will be cleared.",
+    yes: "Sign out", no: "Stay signed in",
+    onYes: () => doLogout(),
+    onNo: () => history.pushState(null, "", "#" + view),   // put the tab back in the address
+  });
+}
+
+/* ---- a small yes/no dialog, styled like the rest of the site ---- */
+function confirmBox({ title, text, yes, no, onYes, onNo }) {
+  const box = el("modal");
+  el("modalTitle").textContent = title;
+  el("modalText").textContent = text;
+  el("modalYes").textContent = yes;
+  el("modalNo").textContent = no;
+  const close = () => { box.classList.add("hidden"); document.removeEventListener("keydown", onKey); };
+  el("modalYes").onclick = () => { close(); onYes && onYes(); };
+  el("modalNo").onclick  = () => { close(); onNo && onNo(); };
+  const onKey = (e) => { if (e.key === "Escape") { close(); onNo && onNo(); } };
+  document.addEventListener("keydown", onKey);
+  box.classList.remove("hidden");
+  el("modalNo").focus();
+}
 
 /* ============ render ============ */
 function render() {
