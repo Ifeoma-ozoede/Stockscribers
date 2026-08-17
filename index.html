@@ -36,8 +36,25 @@
   /* login */
   #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 20px;
     background:var(--login-bg);transition:background .4s ease}
-  .blurb{font-size:13.5px;line-height:1.6;color:var(--muted);text-align:left;
+  .blurb{font-size:13.5px;line-height:1.6;color:var(--muted);
     margin:0 0 22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+
+  /* Search results: every product table shares the same column widths, so Price, Expiry and
+     Stock line up all the way down the page instead of shifting card to card. */
+  table.offers{table-layout:fixed}
+  table.offers th:nth-child(1),table.offers td:nth-child(1){width:34%}
+  table.offers th:nth-child(2),table.offers td:nth-child(2){width:17%}
+  table.offers th:nth-child(3),table.offers td:nth-child(3){width:22%}
+  table.offers th:nth-child(4),table.offers td:nth-child(4){width:15%}
+  table.offers th:nth-child(5),table.offers td:nth-child(5){width:12%}
+  table.offers td{overflow-wrap:anywhere}
+  @media(max-width:700px){
+    table.offers th:nth-child(1),table.offers td:nth-child(1){width:30%}
+    table.offers th:nth-child(2),table.offers td:nth-child(2){width:18%}
+    table.offers th:nth-child(3),table.offers td:nth-child(3){width:22%}
+    table.offers th:nth-child(4),table.offers td:nth-child(4){width:16%}
+    table.offers th:nth-child(5),table.offers td:nth-child(5){width:14%}
+  }
   .madeby{margin-top:16px;font-size:12.5px;color:var(--muted)}
   .madeby a{color:var(--accent);font-weight:600;text-decoration:none}
   .madeby a:hover{text-decoration:underline}
@@ -149,10 +166,8 @@
 <div id="login">
   <div class="login-card">
     <div class="logo">Stock<span>scribes</span></div>
-    <div class="tagline">Pharmacy stock ordering — no phone calls</div>
-    <p class="blurb">Pharmacies order stock by phone, with no way to compare suppliers.
-      Stockscribes puts both sides on one catalogue: staff compare prices, expiry dates and
-      availability at a glance, while suppliers keep their own listings current and confirm orders.</p>
+    <div class="tagline">Pharmacy stock ordering</div>
+    <p class="blurb">One shared catalogue for pharmacies and the wholesalers who supply them.</p>
     <div id="loginerr" class="err hidden"></div>
     <input id="email" type="email" placeholder="Email address" autocomplete="username">
     <input id="password" type="password" placeholder="Password" autocomplete="current-password">
@@ -165,11 +180,11 @@
     <div class="demo-note">
       Sign in with:<br>
       Pharmacy — <code>staff@stockscribes.ng</code> / <code>stockscribes123</code><br>
-      Supplier — <code>alpha@supplier.ng</code> / <code>alpha123</code><br>
+      Supplier — <code>alpha@supplier.ng</code> / <code>alpha-demo-2026</code><br>
       <span id="themenote"></span>
       <button class="themebtn" style="margin-top:9px" onclick="cycleTheme()">Preview other mode</button>
     </div>
-    <div class="madeby">Built by Ify Ozoede —
+    <div class="madeby">Built by Ifeoma Ozoede —
       <a href="https://ifeomaozoede.com" target="_blank" rel="noopener">ifeomaozoede.com</a></div>
   </div>
 </div>
@@ -350,7 +365,7 @@ function vSearch() {
     html += `<div class="card">
       <h3>${esc(p.name)}</h3>
       <div class="gname">${p.generic ? "Generic: " + esc(p.generic) + " · " : ""}${esc(p.category)}</div>
-      <table>
+      <table class="offers">
         <tr><th>Supplier</th><th>Price</th><th>Expiry</th><th>Stock</th><th></th></tr>
         ${p.offers.map(o => `<tr>
           <td>${esc(o.supplier)}</td>
